@@ -13,5 +13,8 @@ python3 -m venv ./venv-server
 source venv-server/bin/activate
 ```
 
+### Install the dependencies
+
+    pip install -r requirements.txt
 
 ### Flask and flask example license https://flask.palletsprojects.com/en/2.1.x/license/#bsd-3-clause-source-license
