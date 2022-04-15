@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 
 
+
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
@@ -26,6 +27,11 @@ def allowed_file(filename):
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
+    # You can test with CURL:
+    # curl \
+    #   -F "file=@/home/user/Desktop/test.jpg" \
+    #   http://localhost:5000/upload
+    
     if request.method == 'POST':
         # check if the post request has the file part
         if 'file' not in request.files:
