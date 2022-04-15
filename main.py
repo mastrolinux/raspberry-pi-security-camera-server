@@ -14,8 +14,8 @@ app = Flask(__name__)
 def setup():
     load_dotenv()
     app.secret_key = os.getenv('SECRET_KEY')
-    app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', './')
-    app.config['MAX_CONTENT_LENGTH'] = os.getenv('MAX_CONTENT_LENGTH')
+    app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', '/var/img')
+    app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH'))
     app.config['SESSION_TYPE'] = 'filesystem'
     # auth = HTTPBasicAuth()
 
