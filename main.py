@@ -58,7 +58,7 @@ def download_file(name):
 
 
 setup()
-app.debug = True
+app.debug = False
 
 if __name__ == '__main__':
     setup()
