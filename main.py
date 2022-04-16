@@ -2,6 +2,7 @@ import os
 from urllib.parse import urljoin
 from flask import Flask, flash, request, redirect, url_for, send_from_directory, jsonify
 from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
@@ -11,6 +12,9 @@ from dotenv import load_dotenv
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
+auth = HTTPBasicAuth()
+
+
 
 def setup():
     load_dotenv()
@@ -18,14 +22,32 @@ def setup():
     app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', '/var/img')
     app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH'))
     app.config['SESSION_TYPE'] = 'filesystem'
-    # auth = HTTPBasicAuth()
+    if os.getenv('PASSWORD') is not None and os.getenv('USERNAME') is not None:
+        app.config['USERS'] = {os.getenv('USERNAME'): generate_password_hash(os.getenv('PASSWORD'))}
 
+@auth.verify_password
+def verify_password(username, password):
+    users = app.config['USERS']
+    if username in users and check_password_hash(users.get(username), password):
+        return username
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+@app.route('/')
+@auth.login_required
+def index():
+    # Get a list of all routes available in the app
+    all_routes = []
+    for url in app.url_map.iter_rules():
+        if url.rule != '/':
+            all_routes.append(url.rule)
+    return jsonify(user=auth.current_user(), routes=all_routes)
+    # return "Hello, {}!".format(auth.current_user())
+
 @app.route('/upload', methods=['GET', 'POST'])
+@auth.login_required
 def upload_file():
     # You can test with CURL:
     # curl \
@@ -59,9 +81,9 @@ def upload_file():
     '''
 
 @app.route('/download/<name>')
+@auth.login_required
 def download_file(name):
     return send_from_directory(app.config["UPLOAD_FOLDER"], name)
-
 
 setup()
 app.debug = False
@@ -69,4 +91,4 @@ app.debug = False
 if __name__ == '__main__':
     setup()
     app.debug = True
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5001)
