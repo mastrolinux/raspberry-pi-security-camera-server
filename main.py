@@ -122,7 +122,7 @@ def list_files():
     for types in ALLOWED_EXTENSIONS:
         files.extend(glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.{}'.format(types))))
     # Sort the files by their creation date
-    files.sort(key=lambda x: os.path.getctime(x))
+    files.sort(key=lambda x: os.path.getctime(x), reverse=True)
 
     images_url = []
     for file in files:
