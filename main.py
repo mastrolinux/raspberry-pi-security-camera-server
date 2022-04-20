@@ -1,6 +1,6 @@
 import os
 from urllib.parse import urljoin
-from flask import Flask, flash, request, redirect, url_for, send_from_directory, jsonify
+from flask import Flask, flash, request, redirect, url_for, send_from_directory, jsonify, render_template
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -35,7 +35,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/')
+@app.route('/sitemap')
 @auth.login_required
 def index():
     # Get a list of all routes available in the app
@@ -44,7 +44,6 @@ def index():
         if url.rule != '/':
             all_routes.append(url.rule)
     return jsonify(user=auth.current_user(), routes=all_routes)
-    # return "Hello, {}!".format(auth.current_user())
 
 @app.route('/upload', methods=['GET', 'POST'])
 @auth.login_required
@@ -112,6 +111,25 @@ def keep_last_images():
 @auth.login_required
 def download_file(name):
     return send_from_directory(app.config["UPLOAD_FOLDER"], name)
+
+
+# List endpoint, get an HTML page listing all the uploaded files link
+@app.route('/')
+@auth.login_required
+def list_files():
+    files = []
+    # Get a list of all files in the upload folder with allowed extension
+    for types in ALLOWED_EXTENSIONS:
+        files.extend(glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.{}'.format(types))))
+    # Sort the files by their creation date
+    files.sort(key=lambda x: os.path.getctime(x))
+
+    images_url = []
+    for file in files:
+        images_url.append(urljoin(request.host_url, url_for('download_file', name=os.path.basename(file))))
+
+    return render_template('imglist.html', images_url=images_url)
+
 
 setup()
 app.debug = False
