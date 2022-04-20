@@ -5,11 +5,11 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+import glob
 
 
 
-
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -69,7 +69,6 @@ def upload_file():
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             return jsonify(success=True, filename=filename, path=urljoin(request.host_url, url_for('download_file', name=filename)))
-            # return redirect(url_for('download_file', name=filename))
     return '''
     <!doctype html>
     <title>Upload new File</title>
@@ -79,6 +78,35 @@ def upload_file():
       <input type=submit value=Upload>
     </form>
     '''
+
+@app.route('/cleanup/', methods = ['POST'])
+@auth.login_required
+def keep_last_images():
+    ## You can test with curl
+    # curl -v -d '{"keep": "20"}' -H "Content-Type: application/json" -u 'username:password' -X POST http://127.0.0.1:5001/cleanup/
+    # Remove the last number of files sent in the POST request
+    if request.method == 'POST':
+        try:
+            jsonrequest = request.get_json()
+            files_to_keep = int(jsonrequest.get('keep', 500))
+        except:
+            files_to_keep = 500
+
+        files = []
+        # Get a list of all files in the upload folder with allowed extension
+        for types in ALLOWED_EXTENSIONS:
+            files.extend(glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.{}'.format(types))))
+        # Sort the files by their creation date
+        files.sort(key=lambda x: os.path.getctime(x))
+        # Delete all files except the last <files_to_keep> files
+        removed_files = []
+        for file in files[:-int(files_to_keep)]:
+            os.remove(file)
+            removed_files.append(file)
+        # print(files)
+        return jsonify(removed_files=removed_files, files_available=len(files), success=True)
+    return jsonify(success=False), 400
+
 
 @app.route('/download/<name>')
 @auth.login_required
