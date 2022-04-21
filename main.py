@@ -5,15 +5,11 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-import glob
+from file_management import get_list_of_img_path, allowed_file, cleanup
 
-
-
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
-
 
 
 def setup():
@@ -25,15 +21,12 @@ def setup():
     if os.getenv('PASSWORD') is not None and os.getenv('USERNAME') is not None:
         app.config['USERS'] = {os.getenv('USERNAME'): generate_password_hash(os.getenv('PASSWORD'))}
 
+
 @auth.verify_password
 def verify_password(username, password):
     users = app.config['USERS']
     if username in users and check_password_hash(users.get(username), password):
         return username
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/sitemap')
 @auth.login_required
@@ -91,18 +84,11 @@ def keep_last_images():
         except:
             files_to_keep = 500
 
-        files = []
-        # Get a list of all files in the upload folder with allowed extension
-        for types in ALLOWED_EXTENSIONS:
-            files.extend(glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.{}'.format(types))))
-        # Sort the files by their creation date
-        files.sort(key=lambda x: os.path.getctime(x))
-        # Delete all files except the last <files_to_keep> files
-        removed_files = []
-        for file in files[:-int(files_to_keep)]:
-            os.remove(file)
-            removed_files.append(file)
-        # print(files)
+        files = get_list_of_img_path(path=app.config['UPLOAD_FOLDER'], reverse=True)
+        # Keep the last X files
+        removed_files = cleanup(files, keep=int(files_to_keep))
+        # Masquerade the server path to the user
+        removed_files = [os.path.basename(path) for path in removed_files]
         return jsonify(removed_files=removed_files, files_available=len(files), success=True)
     return jsonify(success=False), 400
 
@@ -117,13 +103,7 @@ def download_file(name):
 @app.route('/')
 @auth.login_required
 def list_files():
-    files = []
-    # Get a list of all files in the upload folder with allowed extension
-    for types in ALLOWED_EXTENSIONS:
-        files.extend(glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.{}'.format(types))))
-    # Sort the files by their creation date
-    files.sort(key=lambda x: os.path.getctime(x), reverse=True)
-
+    files = get_list_of_img_path(path=app.config['UPLOAD_FOLDER'], reverse=True)
     images_url = []
     for file in files:
         images_url.append(urljoin(request.host_url, url_for('download_file', name=os.path.basename(file))))
