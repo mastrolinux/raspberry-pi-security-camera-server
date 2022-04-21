@@ -1,23 +1,26 @@
-from file_management import get_list_of_img_path, cleanup
-from dotenv import load_dotenv
+import requests
 import sys
 import os
+from urllib.parse import urljoin
+from dotenv import load_dotenv
 
-def auto_cleanup(keep=500):
+def call_cleanup(keep=500):
     load_dotenv()
-    path = os.getenv('UPLOAD_FOLDER', '/var/img')
-    files = get_list_of_img_path(path)
-    removed_files = cleanup(files, keep)
-    return removed_files
+    usernamme = os.getenv('USERNAME')
+    password = os.getenv('PASSWORD')
+    server = os.getenv('SERVER')
+    try:
+        response = requests.post(urljoin(server, '/cleanup/'), json={'keep': keep}, auth=(usernamme, password))
+    except Exception as e:
+        return {'error': str(e)}
+    
+    return response.json()
 
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         if int(sys.argv[1]) >= 0:
-            removed_files = auto_cleanup(keep=int(sys.argv[1]))
+            print(sys.argv[1])
+            print(call_cleanup(keep=int(sys.argv[1])))
     else:
-        removed_files = auto_cleanup()
-    
-    for file in removed_files:
-        print('{} deleted'.format(file))
-
+        print(call_cleanup())
