@@ -29,14 +29,20 @@ def verify_password(username, password):
         return username
 
 @app.route('/sitemap')
-@auth.login_required
 def index():
     # Get a list of all routes available in the app
     all_routes = []
     for url in app.url_map.iter_rules():
         if url.rule != '/':
             all_routes.append(url.rule)
-    return jsonify(user=auth.current_user(), routes=all_routes)
+    
+    if len(all_routes) > 0:
+        return jsonify(success=True, routes=all_routes)
+    else:
+        # Return an error with a 500 status code
+        return jsonify(error='No routes found'), 500
+
+    
 
 @app.route('/upload', methods=['GET', 'POST'])
 @auth.login_required
