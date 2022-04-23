@@ -21,9 +21,9 @@ source venv-server/bin/activate
 
 ### Setup the .env file
 
-Copy the .env.example file to .env and fill in the values.
+Copy the .env-example-local file to .env and fill in the values.
 
-    cp .env.example .env
+    cp .env-example-local .env
 
 Then use your editor to edit the .env file.
 
